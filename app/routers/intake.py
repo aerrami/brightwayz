@@ -196,7 +196,10 @@ async def get_intake(
     assessment_id: str,
     _user: dict = Depends(require_user),
 ):
-    return await db_get_one(f"intakes?id=eq.{assessment_id}&select=*")
+    return await db_get_one(
+        f"intakes?id=eq.{assessment_id}"
+        f"&select=*,client:clients(id,first_name,last_name,phone,email)"
+    )
 
 
 # ── POST /auth/chatbot-intake (PUBLIC) ────────────────────────────────────────
