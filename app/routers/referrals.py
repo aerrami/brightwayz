@@ -14,7 +14,7 @@ POST   /auth/decline-referral/{token}  decline via token link (public)
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.auth import require_user
 from app.core.supabase import db_get, db_patch, db_post
@@ -30,6 +30,53 @@ def _now() -> str:
 
 def _expiry(days: int = 7) -> str:
     return (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+
+
+def _sanitize_search(s: str) -> str:
+    return "".join(c for c in s if c.isalnum() or c in " -'.@")[:80]
+
+
+# ── GET /data/referrals ───────────────────────────────────────────────────────
+
+@data_router.get("/referrals")
+async def list_referrals(
+    org: str = Query(...),
+    search: str = Query("", description="Match against client name or invite email"),
+    date_from: str = Query("", alias="from"),
+    date_to: str = Query("", alias="to"),
+    status: str = Query("", description="pending / accepted / declined / cancelled"),
+    limit: int = Query(50, le=200),
+    _user: dict = Depends(require_user),
+):
+    q = (
+        "referrals?"
+        "select=id,status,note,invite_email,destination_org_id,created_at,responded_at,"
+        "client:clients!inner(id,first_name,last_name,org_id)"
+        f"&client.org_id=eq.{org}"
+        f"&order=created_at.desc&limit={limit}"
+    )
+    if status:
+        q += f"&status=eq.{status}"
+    if date_from:
+        q += f"&created_at=gte.{date_from}"
+    if date_to:
+        q += f"&created_at=lte.{date_to}T23:59:59"
+
+    if search:
+        clean = _sanitize_search(search)
+        if clean:
+            clients = await db_get(
+                f"clients?org_id=eq.{org}"
+                f"&or=(first_name.ilike.*{clean}*,last_name.ilike.*{clean}*)"
+                f"&select=id"
+            )
+            client_ids = [c["id"] for c in clients] if isinstance(clients, list) else []
+            ids_csv = (
+                ",".join(client_ids) if client_ids else "00000000-0000-0000-0000-000000000000"
+            )
+            q += f"&or=(client_id.in.({ids_csv}),invite_email.ilike.*{clean}*)"
+
+    return await db_get(q)
 
 
 # ── POST /data/create-referral ────────────────────────────────────────────────
