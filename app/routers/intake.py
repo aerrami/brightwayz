@@ -55,21 +55,46 @@ def _assessment_row(body: AssessmentUpdate, status: str, now: str) -> dict:
 
 # ── GET /data/intakes ─────────────────────────────────────────────────────────
 
+def _sanitize_search(s: str) -> str:
+    """Strip PostgREST operator chars so user input can't break the query."""
+    return "".join(c for c in s if c.isalnum() or c in " -'.")[:80]
+
+
 @data_router.get("/intakes")
 async def list_intakes(
     org: str = Query(...),
-    status: str = Query("", description="Optional: 'completed' or 'in_progress'"),
+    search: str = Query("", description="Match against client name or intake ZIP"),
+    date_from: str = Query("", alias="from", description="ISO date, inclusive lower bound"),
+    date_to: str = Query("", alias="to", description="ISO date, inclusive upper bound"),
+    status: str = Query("", description="'completed' or 'in_progress'"),
     limit: int = Query(50, le=200),
     _user: dict = Depends(require_user),
 ):
     q = (
         f"intakes?org_id=eq.{org}"
-        f"&select=id,status,source,support_types,support_urgent,created_at,completed_at,"
+        f"&select=id,status,source,zip_code,support_types,support_urgent,created_at,completed_at,"
         f"client:clients(id,first_name,last_name)"
         f"&order=created_at.desc&limit={limit}"
     )
     if status:
         q += f"&status=eq.{status}"
+    if date_from:
+        q += f"&created_at=gte.{date_from}"
+    if date_to:
+        q += f"&created_at=lte.{date_to}T23:59:59"
+
+    if search:
+        clean = _sanitize_search(search)
+        if clean:
+            clients = await db_get(
+                f"clients?org_id=eq.{org}"
+                f"&or=(first_name.ilike.*{clean}*,last_name.ilike.*{clean}*)"
+                f"&select=id"
+            )
+            client_ids = [c["id"] for c in clients] if isinstance(clients, list) else []
+            ids_csv = ",".join(client_ids) if client_ids else "00000000-0000-0000-0000-000000000000"
+            q += f"&or=(client_id.in.({ids_csv}),zip_code.ilike.*{clean}*)"
+
     return await db_get(q)
 
 
