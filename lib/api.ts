@@ -34,6 +34,10 @@ export const api = {
   chatbotIntake: (body: Record<string, unknown>) =>
     request("/auth/chatbot-intake", { method: "POST", body: JSON.stringify(body) }),
 
+  // AI-powered chat (multi-turn)
+  aiChat: (messages: { role: string; content: string }[]) =>
+    request("/auth/ai-chat", { method: "POST", body: JSON.stringify({ messages }) }),
+
   // ── Authenticated ──────────────────────────────────────────────────────────
 
   // Dashboard
