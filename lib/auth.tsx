@@ -12,19 +12,29 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({ session: null, loading: true, signOut: async () => {} });
 
 const REFRESH_LEEWAY_S = 60;
+const AUTH_TIMEOUT_MS = 5000;
 
 async function loadFreshSession(): Promise<Session | null> {
-  const { data } = await supabase.auth.getSession();
-  if (!data.session) return null;
-  const now = Math.floor(Date.now() / 1000);
-  const expiresAt = data.session.expires_at ?? 0;
-  if (expiresAt - now > REFRESH_LEEWAY_S) return data.session;
-  const { data: refreshed, error } = await supabase.auth.refreshSession();
-  if (error || !refreshed.session) {
-    await supabase.auth.signOut();
+  let stored: Session | null = null;
+  try {
+    const { data } = await supabase.auth.getSession();
+    stored = data.session;
+  } catch {
     return null;
   }
-  return refreshed.session;
+  if (!stored) return null;
+
+  const now = Math.floor(Date.now() / 1000);
+  const expiresAt = stored.expires_at ?? 0;
+  if (expiresAt - now > REFRESH_LEEWAY_S) return stored;
+
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error || !data.session) return null;
+    return data.session;
+  } catch {
+    return null;
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -33,19 +43,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    loadFreshSession().then((s) => {
+    const finalize = (s: Session | null) => {
       if (cancelled) return;
       setSession(s);
       setLoading(false);
-    });
+    };
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), AUTH_TIMEOUT_MS));
+    Promise.race([loadFreshSession(), timeout]).then(finalize).catch(() => finalize(null));
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
+      if (!cancelled) setSession(s);
     });
     return () => { cancelled = true; subscription.unsubscribe(); };
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try { await supabase.auth.signOut(); } catch { /* still redirect */ }
     window.location.href = "/login/";
   };
 
