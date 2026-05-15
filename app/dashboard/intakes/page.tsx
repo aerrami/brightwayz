@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Search } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 
@@ -8,6 +9,7 @@ type IntakeRow = {
   id: string;
   status: string;
   source: string;
+  zip_code: string | null;
   support_types: string[] | null;
   support_urgent: string | null;
   created_at: string;
@@ -26,22 +28,58 @@ export default function IntakesPage() {
   const [intakes, setIntakes] = useState<IntakeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
+  const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const orgId = (session?.user.user_metadata?.org_id as string) ?? "";
 
   useEffect(() => {
     if (!session || !orgId) return;
     const params: Record<string, string> = { org: orgId, limit: "100" };
     if (status) params.status = status;
+    if (search.trim()) params.search = search.trim();
+    if (dateFrom) params.from = dateFrom;
+    if (dateTo) params.to = dateTo;
     api.listIntakes(params, session.access_token)
       .then((rows: IntakeRow[]) => setIntakes(rows))
       .catch(() => setIntakes([]))
       .finally(() => setLoading(false));
-  }, [session, orgId, status]);
+  }, [session, orgId, status, search, dateFrom, dateTo]);
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Intakes</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Intakes</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+        <div className="relative md:col-span-2">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            className="input pl-9 w-full"
+            placeholder="Search name or ZIP…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <input
+          type="date"
+          className="input"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          aria-label="From date"
+        />
+        <input
+          type="date"
+          className="input"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          aria-label="To date"
+        />
+      </div>
+
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-gray-400">
+          {loading ? "Loading…" : `${intakes.length} result${intakes.length === 1 ? "" : "s"}`}
+        </p>
         <select
           className="input w-48"
           value={status}
@@ -62,7 +100,7 @@ export default function IntakesPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                {["Client", "Status", "Source", "Support Needs", "Created"].map((h) => (
+                {["Client", "ZIP", "Status", "Source", "Support Needs", "Created"].map((h) => (
                   <th
                     key={h}
                     className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide"
@@ -87,6 +125,7 @@ export default function IntakesPage() {
                       <span className="text-gray-400">—</span>
                     )}
                   </td>
+                  <td className="px-4 py-3 text-gray-500">{i.zip_code || "—"}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full ${
