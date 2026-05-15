@@ -1,13 +1,26 @@
+import { supabase } from "./supabase";
+
 const BASE = process.env.NEXT_PUBLIC_API_URL!;
 
-async function request(path: string, options: RequestInit = {}, token?: string | null) {
+async function doFetch(path: string, options: RequestInit, token: string | null | undefined) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
   if (token) headers["Authorization"] = `Bearer ${token}`;
+  return fetch(`${BASE}${path}`, { ...options, headers });
+}
 
-  const res = await fetch(`${BASE}${path}`, { ...options, headers });
+async function request(path: string, options: RequestInit = {}, token?: string | null) {
+  let res = await doFetch(path, options, token);
+  if (res.status === 401 && token) {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error || !data.session) {
+      await supabase.auth.signOut();
+    } else {
+      res = await doFetch(path, options, data.session.access_token);
+    }
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(err.detail ?? "Request failed");
