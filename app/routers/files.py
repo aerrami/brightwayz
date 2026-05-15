@@ -26,12 +26,7 @@ router = APIRouter(prefix="/data", tags=["files"])
 
 def _s3():
     cfg = get_settings()
-    return boto3.client(
-        "s3",
-        region_name=cfg.aws_region,
-        aws_access_key_id=cfg.aws_access_key_id,
-        aws_secret_access_key=cfg.aws_secret_access_key,
-    )
+    return boto3.client("s3", region_name=cfg.aws_region)
 
 
 def _now():
