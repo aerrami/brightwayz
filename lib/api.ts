@@ -59,6 +59,8 @@ export const api = {
     request(`/data/clients/${id}/referrals`, {}, token),
 
   // Intake
+  listIntakes: (params: Record<string, string>, token: string) =>
+    request(`/data/intakes?${new URLSearchParams(params)}`, {}, token),
   createIntake: (body: Record<string, unknown>, token: string) =>
     request("/data/intake", { method: "POST", body: JSON.stringify(body) }, token),
   getIntake: (id: string, token: string) =>

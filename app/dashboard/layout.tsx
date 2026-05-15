@@ -3,11 +3,12 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
-import { LayoutDashboard, Users, GitMerge, MapPin, Building2, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardList, GitMerge, MapPin, Building2, LogOut } from "lucide-react";
 
 const NAV = [
   { href: "/dashboard/", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/clients/", label: "Clients", icon: Users },
+  { href: "/dashboard/intakes/", label: "Intakes", icon: ClipboardList },
   { href: "/dashboard/referrals/", label: "Referrals", icon: GitMerge },
   { href: "/dashboard/resources/", label: "Resources", icon: MapPin },
   { href: "/dashboard/settings/", label: "Settings", icon: Building2 },
