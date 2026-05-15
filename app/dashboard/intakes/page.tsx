@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 
@@ -108,6 +108,7 @@ export default function IntakesPage() {
                     {h}
                   </th>
                 ))}
+                <th className="w-10" aria-label="View"></th>
               </tr>
             </thead>
             <tbody>
@@ -155,6 +156,15 @@ export default function IntakesPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-400">
                     {new Date(i.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-2 py-3 text-right">
+                    <Link
+                      href={`/dashboard/intakes/detail/?id=${i.id}`}
+                      aria-label="View intake details"
+                      className="inline-flex items-center text-gray-400 hover:text-indigo-600"
+                    >
+                      <ChevronRight size={16} />
+                    </Link>
                   </td>
                 </tr>
               ))}
