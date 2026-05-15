@@ -90,4 +90,12 @@ export const api = {
 
   // User
   getCurrentUser: (token: string) => request("/data/user", {}, token),
+
+  // Messaging (staff side)
+  listClientMessages: (clientId: string, orgId: string, token: string) =>
+    request(`/data/people/chat/messages/${clientId}?org_id=${orgId}`, {}, token),
+  sendStaffMessage: (body: { clientId: string; orgId: string; body: string }, token: string) =>
+    request("/data/people/chat/messages", { method: "POST", body: JSON.stringify(body) }, token),
+  markClientMessagesRead: (clientId: string, token: string) =>
+    request("/data/people/chat/unread", { method: "POST", body: JSON.stringify({ clientId }) }, token),
 };
