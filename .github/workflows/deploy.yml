@@ -9,8 +9,8 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: brightwayz-api
-  ECS_SERVICE: brightwayz-api-service
-  ECS_CLUSTER: brightwayz-cluster
+  ECS_SERVICE: brightwayz-api
+  ECS_CLUSTER: brightwayz
   CONTAINER_NAME: brightwayz-api
 
 jobs:
