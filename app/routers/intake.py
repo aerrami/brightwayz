@@ -15,7 +15,8 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.auth import require_user
 from app.core.config import get_settings
-from app.core.supabase import db_get_one, db_patch, db_post
+from app.core.supabase import db_get, db_get_one, db_patch, db_post
+from fastapi import Query
 from app.models.schemas import (
     AssessmentUpdate,
     ChatbotIntake,
@@ -50,6 +51,26 @@ def _assessment_row(body: AssessmentUpdate, status: str, now: str) -> dict:
         "source": body.source or "staff",
         "status": status,
     }
+
+
+# ── GET /data/intakes ─────────────────────────────────────────────────────────
+
+@data_router.get("/intakes")
+async def list_intakes(
+    org: str = Query(...),
+    status: str = Query("", description="Optional: 'completed' or 'in_progress'"),
+    limit: int = Query(50, le=200),
+    _user: dict = Depends(require_user),
+):
+    q = (
+        f"intakes?org_id=eq.{org}"
+        f"&select=id,status,source,support_types,support_urgent,created_at,completed_at,"
+        f"client:clients(id,first_name,last_name)"
+        f"&order=created_at.desc&limit={limit}"
+    )
+    if status:
+        q += f"&status=eq.{status}"
+    return await db_get(q)
 
 
 # ── POST /data/intake ─────────────────────────────────────────────────────────
