@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { GitMerge, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 
@@ -63,12 +64,169 @@ function Section({
   );
 }
 
+function defaultReferralNote(intake: Intake): string {
+  const name = intake.client
+    ? `${intake.client.first_name} ${intake.client.last_name}`
+    : "Client";
+  const lines = [
+    `Referral from intake submitted ${new Date(intake.created_at).toLocaleDateString()}.`,
+    "",
+    `${name} is seeking support with: ${(intake.support_types ?? []).join(", ") || "(unspecified)"}.`,
+  ];
+  if (intake.support_urgent) lines.push(`Urgency: ${intake.support_urgent}.`);
+  if (intake.housing_status) lines.push(`Housing status: ${intake.housing_status}.`);
+  if (intake.employment_status) lines.push(`Employment: ${intake.employment_status}.`);
+  if (intake.zip_code) lines.push(`ZIP: ${intake.zip_code}.`);
+  return lines.join("\n");
+}
+
+function ConvertToReferralPanel({
+  intake,
+  onClose,
+}: {
+  intake: Intake;
+  onClose: () => void;
+}) {
+  const { session } = useAuth();
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [destinationOrgId, setDestinationOrgId] = useState("");
+  const [note, setNote] = useState(defaultReferralNote(intake));
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [createdId, setCreatedId] = useState<string | null>(null);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (!intake.client) {
+      setError("This intake has no client attached — cannot create a referral.");
+      return;
+    }
+    if (!inviteEmail.trim() && !destinationOrgId.trim()) {
+      setError("Provide either an invite email or a destination organization ID.");
+      return;
+    }
+    if (!session) return;
+    setSubmitting(true);
+    try {
+      const body: Record<string, unknown> = {
+        clientId: intake.client.id,
+        note: note.trim() || undefined,
+      };
+      if (inviteEmail.trim()) body.inviteEmail = inviteEmail.trim();
+      if (destinationOrgId.trim()) body.destinationOrgId = destinationOrgId.trim();
+      const res = await api.createReferral(body, session.access_token);
+      setCreatedId(res.id ?? res.referralId ?? "(unknown)");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (createdId) {
+    return (
+      <div className="bg-green-50 border border-green-200 rounded-xl p-5 mb-6 flex items-start justify-between gap-4">
+        <div>
+          <p className="font-semibold text-green-800 mb-1">Referral created</p>
+          <p className="text-sm text-green-700">
+            Reference <span className="font-mono">{createdId}</span> — the destination will be notified.
+          </p>
+        </div>
+        <button
+          onClick={onClose}
+          aria-label="Dismiss"
+          className="text-green-600 hover:text-green-800"
+        >
+          <X size={16} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-semibold text-gray-900">Convert to referral</h2>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cancel"
+          className="text-gray-400 hover:text-gray-600"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Invite by email
+          </label>
+          <input
+            type="email"
+            className="input w-full"
+            placeholder="partner@example.com"
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Or destination org ID
+          </label>
+          <input
+            className="input w-full"
+            placeholder="(optional)"
+            value={destinationOrgId}
+            onChange={(e) => setDestinationOrgId(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
+        <textarea
+          className="input w-full font-sans"
+          rows={6}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          disabled={submitting}
+        />
+      </div>
+
+      {error ? (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded p-2 mb-3">
+          {error}
+        </p>
+      ) : null}
+
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={submitting}
+          className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5"
+        >
+          Cancel
+        </button>
+        <button type="submit" disabled={submitting} className="btn-primary disabled:opacity-40">
+          {submitting ? "Creating…" : "Create referral"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function IntakeDetailContent() {
   const params = useSearchParams();
   const id = params.get("id") ?? "";
   const { session } = useAuth();
   const [intake, setIntake] = useState<Intake | null>(null);
   const [loading, setLoading] = useState(true);
+  const [converting, setConverting] = useState(false);
 
   useEffect(() => {
     if (!session || !id) return;
@@ -127,6 +285,19 @@ function IntakeDetailContent() {
           <span className="text-xs text-gray-400 capitalize">via {intake.source ?? "—"}</span>
         </div>
       </div>
+
+      {!converting ? (
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setConverting(true)}
+            className="btn-primary text-sm flex items-center gap-1.5"
+          >
+            <GitMerge size={14} /> Convert to Referral
+          </button>
+        </div>
+      ) : (
+        <ConvertToReferralPanel intake={intake} onClose={() => setConverting(false)} />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Section title="Submission">
