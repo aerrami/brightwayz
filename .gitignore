@@ -8,3 +8,6 @@ venv/
 *.egg-info/
 dist/
 build/
+
+# Claude Code local-only settings (may contain secrets/permission grants)
+.claude/settings.local.json
