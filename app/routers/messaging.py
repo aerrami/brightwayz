@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Query
 from app.core.auth import require_user
 from app.core.supabase import db_get, db_patch, db_post
-from app.models.schemas import MarkUnreadRequest, SendMessageRequest, ChatStartRequest
+from app.models.schemas import MarkUnreadRequest, SendMessageRequest, StaffSendMessageRequest, ChatStartRequest
 
 router = APIRouter(prefix="/data", tags=["messaging"])
 
@@ -34,6 +34,37 @@ async def get_staff_messages(
     if before:
         q += f"&created_at=lt.{before}"
     return await db_get(q)
+
+
+# ── Staff: send a message to a client (creates conversation if needed) ───────
+
+@router.post("/people/chat/messages")
+async def send_staff_message(
+    body: StaffSendMessageRequest,
+    user: dict = Depends(require_user),
+):
+    existing = await db_get(
+        f"conversations?client_id=eq.{body.clientId}&org_id=eq.{body.orgId}&select=id"
+    )
+    if existing:
+        conv_id = existing[0]["id"]
+    else:
+        conv = await db_post("conversations", {
+            "org_id": body.orgId,
+            "client_id": body.clientId,
+            "created_at": _now(),
+        })
+        conv_id = conv["id"]
+
+    return await db_post("messages", {
+        "conversation_id": conv_id,
+        "client_id": body.clientId,
+        "org_id": body.orgId,
+        "sender_id": user.get("sub"),
+        "body": body.body,
+        "read": False,
+        "created_at": _now(),
+    })
 
 
 # ── Staff: mark client messages as read ───────────────────────────────────────

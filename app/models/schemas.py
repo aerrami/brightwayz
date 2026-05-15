@@ -213,6 +213,12 @@ class SendMessageRequest(BaseModel):
     body: str
 
 
+class StaffSendMessageRequest(BaseModel):
+    clientId: str
+    orgId: str
+    body: str
+
+
 class MarkUnreadRequest(BaseModel):
     orgId: Optional[str] = None
     clientId: Optional[str] = None
