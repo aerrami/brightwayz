@@ -71,6 +71,8 @@ export const api = {
     request(`/data/complete-intake/${id}`, { method: "POST", body: JSON.stringify(body) }, token),
 
   // Referrals
+  listReferrals: (params: Record<string, string>, token: string) =>
+    request(`/data/referrals?${new URLSearchParams(params)}`, {}, token),
   createReferral: (body: Record<string, unknown>, token: string) =>
     request("/data/create-referral", { method: "POST", body: JSON.stringify(body) }, token),
   deleteReferral: (id: string, token: string) =>
