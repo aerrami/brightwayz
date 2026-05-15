@@ -70,7 +70,7 @@ def test_chatbot_intake(mock_settings, mock_post):
 
 
 def test_chatbot_intake_missing_org():
-    with patch("app.core.config.get_settings") as mock_settings:
+    with patch("app.routers.intake.get_settings") as mock_settings:
         mock_settings.return_value.default_org_id = ""
         r = client.post("/auth/chatbot-intake", json={"firstName": "Jane"})
     assert r.status_code == 400
