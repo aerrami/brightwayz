@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     aws_s3_bucket: str = "brightwayz-uploads"
 
     google_maps_api_key: str = ""
+    anthropic_api_key: str = ""
 
     @property
     def origins_list(self) -> list[str]:

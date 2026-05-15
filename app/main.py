@@ -27,6 +27,7 @@ from app.routers.referrals import data_router as referrals_data_router
 from app.routers.referrals import auth_router as referrals_auth_router
 from app.routers.resources import data_router as resources_data_router
 from app.routers.resources import auth_router as resources_auth_router
+from app.routers.ai_chat import router as ai_chat_router
 
 
 @asynccontextmanager
@@ -62,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(intake_auth_router)
     app.include_router(referrals_auth_router)
     app.include_router(resources_auth_router)
+    app.include_router(ai_chat_router)
 
     # ── Authenticated routes (/data/*) ────────────────────────────────────────
     app.include_router(intake_data_router)

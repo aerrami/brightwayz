@@ -100,6 +100,21 @@ class ChatbotIntakeResponse(BaseModel):
     message: str
 
 
+class AIChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class AIChatRequest(BaseModel):
+    messages: list[AIChatMessage]
+
+
+class AIChatResponse(BaseModel):
+    reply: str
+    intakeSubmitted: bool = False
+    assessmentId: Optional[str] = None
+
+
 # ── Referrals ─────────────────────────────────────────────────────────────────
 
 class ReferralCreate(BaseModel):
