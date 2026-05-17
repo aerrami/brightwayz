@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, Suspense, FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { MessageCircle, Send } from "lucide-react";
+import { MessageCircle, MessageSquareText, Send, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 
@@ -85,6 +85,91 @@ function ChatPanel({ clientId, orgId, token, meId }:
   );
 }
 
+function SendSMSPanel({
+  clientId,
+  clientPhone,
+  token,
+  onClose,
+}: {
+  clientId: string;
+  clientPhone: string | null;
+  token: string;
+  onClose: () => void;
+}) {
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [sid, setSid] = useState<string | null>(null);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (!body.trim()) return;
+    setSending(true);
+    try {
+      const res = await api.sendSMS({ clientId, body: body.trim() }, token);
+      setSid(res.messageSid);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (sid) {
+    return (
+      <div className="bg-green-50 border border-green-200 rounded-xl p-5 mb-6 flex items-start justify-between gap-4">
+        <div>
+          <p className="font-semibold text-green-800 mb-1">SMS sent</p>
+          <p className="text-sm text-green-700">
+            Twilio SID <span className="font-mono">{sid}</span>
+          </p>
+        </div>
+        <button onClick={onClose} aria-label="Dismiss" className="text-green-600 hover:text-green-800">
+          <X size={16} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold text-gray-900">Send SMS</h2>
+        <button type="button" onClick={onClose} aria-label="Cancel" className="text-gray-400 hover:text-gray-600">
+          <X size={16} />
+        </button>
+      </div>
+      <p className="text-xs text-gray-500 mb-3">
+        To: <span className="font-mono">{clientPhone || "(no phone on file)"}</span>
+      </p>
+      <textarea
+        className="input w-full font-sans"
+        rows={4}
+        maxLength={1600}
+        placeholder="Type your message…"
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        disabled={sending || !clientPhone}
+      />
+      <div className="flex items-center justify-between mt-2">
+        <span className="text-xs text-gray-400">{body.length}/1600</span>
+        <div className="flex gap-2">
+          <button type="button" onClick={onClose} disabled={sending} className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5">
+            Cancel
+          </button>
+          <button type="submit" disabled={sending || !body.trim() || !clientPhone} className="btn-primary disabled:opacity-40">
+            {sending ? "Sending…" : "Send"}
+          </button>
+        </div>
+      </div>
+      {error ? (
+        <p className="mt-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded p-2">{error}</p>
+      ) : null}
+    </form>
+  );
+}
+
 function ClientDetailContent() {
   const params = useSearchParams();
   const id = params.get("id") ?? "";
@@ -93,6 +178,7 @@ function ClientDetailContent() {
   const [intakes, setIntakes] = useState<Record<string, unknown>[]>([]);
   const [referrals, setReferrals] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
+  const [smsing, setSmsing] = useState(false);
 
   useEffect(() => {
     if (!session || !id) return;
@@ -116,8 +202,25 @@ function ClientDetailContent() {
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">{client.first_name as string} {client.last_name as string}</h1>
-        <Link href={`/dashboard/intake/new/?clientId=${id}`} className="btn-primary text-sm">+ New Intake</Link>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setSmsing((v) => !v)}
+            className="text-sm border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50 flex items-center gap-1.5"
+          >
+            <MessageSquareText size={14} /> Send SMS
+          </button>
+          <Link href={`/dashboard/intake/new/?clientId=${id}`} className="btn-primary text-sm">+ New Intake</Link>
+        </div>
       </div>
+
+      {smsing && session ? (
+        <SendSMSPanel
+          clientId={id}
+          clientPhone={(client.phone as string) ?? null}
+          token={session.access_token}
+          onClose={() => setSmsing(false)}
+        />
+      ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl border border-gray-200 p-5">
