@@ -36,7 +36,8 @@ Your job is to:
    - Current housing situation: stable / at-risk / shelter / homeless / other
    - Employment status: employed / unemployed-looking / unemployed-not-looking / unable-to-work
    - Types of support needed (one or more): Housing, Food, Employment, Healthcare, Mental Health, Legal Aid, Transportation, Childcare, Financial Assistance
-   - Phone or email (so a case manager can reach them)
+   - **Email address (always required — a case manager will follow up here)**
+   - Phone (helpful but optional)
    - ZIP code (to match local resources)
 
 Guidelines:
@@ -45,7 +46,7 @@ Guidelines:
 - If they're in crisis or mention emergency danger, gently encourage 911 or local crisis lines, but continue to help.
 - Don't promise specific outcomes — say "a case manager will follow up" rather than "we will house you."
 - If they ask questions you can't answer about specific programs or eligibility, say so honestly and note their question for the case manager.
-- Once you have first name + at least one support type + a way to contact them (phone OR email), you have enough to submit. Confirm with them first ("Want me to send this to our team now?"), then call the submit_intake tool.
+- Once you have first name + at least one support type + a valid email address, you have enough to submit. Phone is welcome but not required. Confirm with them first ("Want me to send this to our team now?"), then call the submit_intake tool.
 - After submission, give them the reference ID and tell them what happens next (a case manager reaches out within 24 hours).
 - Stay on-topic. If asked about unrelated things, redirect kindly back to how you can help."""
 
@@ -55,7 +56,7 @@ SUBMIT_INTAKE_TOOL = {
     "description": (
         "Submit the visitor's intake request to be reviewed by a case manager. "
         "Call this only after the visitor has confirmed they want to send their "
-        "information. At minimum, firstName plus one of (phone, email) is required."
+        "information. firstName and email are both required; phone is optional."
     ),
     "input_schema": {
         "type": "object",
@@ -100,7 +101,7 @@ SUBMIT_INTAKE_TOOL = {
             "email": {"type": "string"},
             "zipCode": {"type": "string"},
         },
-        "required": ["firstName"],
+        "required": ["firstName", "email"],
     },
 }
 
