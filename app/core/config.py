@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     twilio_auth_token: str = ""
     twilio_from_number: str = ""
 
+    resend_api_key: str = ""
+    notification_from_email: str = "no-reply@brightwayz.io"
+
     @property
     def origins_list(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",")]

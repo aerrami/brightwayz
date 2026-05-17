@@ -29,6 +29,7 @@ from app.routers.resources import data_router as resources_data_router
 from app.routers.resources import auth_router as resources_auth_router
 from app.routers.ai_chat import router as ai_chat_router
 from app.routers.sms import router as sms_router
+from app.routers.cases import router as cases_router
 
 
 @asynccontextmanager
@@ -76,6 +77,7 @@ def create_app() -> FastAPI:
     app.include_router(files_router)
     app.include_router(messaging_router)
     app.include_router(sms_router)
+    app.include_router(cases_router)
 
     @app.get("/health", tags=["health"])
     async def health():
