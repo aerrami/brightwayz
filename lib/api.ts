@@ -112,6 +112,10 @@ export const api = {
   // User
   getCurrentUser: (token: string) => request("/data/user", {}, token),
 
+  // SMS (staff → client)
+  sendSMS: (body: { clientId: string; body: string }, token: string) =>
+    request("/data/sms/send", { method: "POST", body: JSON.stringify(body) }, token),
+
   // Messaging (staff side)
   listClientMessages: (clientId: string, orgId: string, token: string) =>
     request(`/data/people/chat/messages/${clientId}?org_id=${orgId}`, {}, token),
