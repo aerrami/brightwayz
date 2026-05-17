@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     google_maps_api_key: str = ""
     anthropic_api_key: str = ""
 
+    resend_api_key: str = ""
+    notification_from_email: str = "no-reply@brightwayz.io"
+
     @property
     def origins_list(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",")]

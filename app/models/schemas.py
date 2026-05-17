@@ -234,6 +234,10 @@ class StaffSendMessageRequest(BaseModel):
     body: str
 
 
+class CaseStatusUpdate(BaseModel):
+    status: str  # one of: open | assigned | in_progress | resolved | closed
+
+
 class MarkUnreadRequest(BaseModel):
     orgId: Optional[str] = None
     clientId: Optional[str] = None
