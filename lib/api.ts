@@ -112,6 +112,12 @@ export const api = {
   // User
   getCurrentUser: (token: string) => request("/data/user", {}, token),
 
+  // Cases (CRM lifecycle)
+  listClientCases: (clientId: string, token: string) =>
+    request(`/data/cases?clientId=${clientId}`, {}, token),
+  updateCaseStatus: (caseId: string, status: string, token: string) =>
+    request(`/data/cases/${caseId}/status`, { method: "POST", body: JSON.stringify({ status }) }, token),
+
   // Messaging (staff side)
   listClientMessages: (clientId: string, orgId: string, token: string) =>
     request(`/data/people/chat/messages/${clientId}?org_id=${orgId}`, {}, token),

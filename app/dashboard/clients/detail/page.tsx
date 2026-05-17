@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, Suspense, FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { MessageCircle, Send } from "lucide-react";
+import { MessageCircle, Send, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 
@@ -85,6 +85,56 @@ function ChatPanel({ clientId, orgId, token, meId }:
   );
 }
 
+type Case = { id: string; status: string; created_at: string };
+
+const CASE_STATUSES = ["open", "assigned", "in_progress", "resolved", "closed"];
+
+const CASE_STATUS_STYLES: Record<string, string> = {
+  open: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  assigned: "bg-blue-50 text-blue-700 border-blue-200",
+  in_progress: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  resolved: "bg-green-50 text-green-700 border-green-200",
+  closed: "bg-gray-50 text-gray-500 border-gray-200",
+};
+
+function CaseStatusSelector({
+  caseRow,
+  token,
+  onChanged,
+}: {
+  caseRow: Case;
+  token: string;
+  onChanged: (newStatus: string, notification: unknown) => void;
+}) {
+  const [updating, setUpdating] = useState(false);
+
+  async function change(status: string) {
+    if (status === caseRow.status) return;
+    setUpdating(true);
+    try {
+      const res = await api.updateCaseStatus(caseRow.id, status, token);
+      onChanged(status, res.notification);
+    } catch {
+      // leave selector at previous value
+    } finally {
+      setUpdating(false);
+    }
+  }
+
+  return (
+    <select
+      className={`text-xs px-2 py-1 rounded-full border ${CASE_STATUS_STYLES[caseRow.status] ?? "bg-gray-50 text-gray-500 border-gray-200"} disabled:opacity-50`}
+      value={caseRow.status}
+      onChange={(e) => change(e.target.value)}
+      disabled={updating}
+    >
+      {CASE_STATUSES.map((s) => (
+        <option key={s} value={s}>{s.replace("_", " ")}</option>
+      ))}
+    </select>
+  );
+}
+
 function ClientDetailContent() {
   const params = useSearchParams();
   const id = params.get("id") ?? "";
@@ -92,6 +142,8 @@ function ClientDetailContent() {
   const [client, setClient] = useState<Record<string, unknown> | null>(null);
   const [intakes, setIntakes] = useState<Record<string, unknown>[]>([]);
   const [referrals, setReferrals] = useState<Record<string, unknown>[]>([]);
+  const [cases, setCases] = useState<Case[]>([]);
+  const [notice, setNotice] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -100,7 +152,8 @@ function ClientDetailContent() {
       api.getClient(id, session.access_token),
       api.getClientIntakes(id, session.access_token),
       api.getClientReferrals(id, session.access_token),
-    ]).then(([c, i, r]) => { setClient(c); setIntakes(i); setReferrals(r); })
+      api.listClientCases(id, session.access_token),
+    ]).then(([c, i, r, cs]) => { setClient(c); setIntakes(i); setReferrals(r); setCases(cs); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [id, session]);
@@ -118,6 +171,40 @@ function ClientDetailContent() {
         <h1 className="text-2xl font-bold text-gray-900">{client.first_name as string} {client.last_name as string}</h1>
         <Link href={`/dashboard/intake/new/?clientId=${id}`} className="btn-primary text-sm">+ New Intake</Link>
       </div>
+
+      {notice ? (
+        <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-800 text-sm rounded-lg px-4 py-2 flex items-center justify-between gap-3">
+          <span>{notice}</span>
+          <button onClick={() => setNotice("")} aria-label="Dismiss" className="text-blue-600 hover:text-blue-800">
+            <X size={14} />
+          </button>
+        </div>
+      ) : null}
+
+      {session && cases.length > 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+          <h2 className="font-semibold text-gray-900 mb-4">Cases</h2>
+          {cases.map((c) => (
+            <div key={c.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0 text-sm">
+              <span className="text-gray-500">
+                Opened {new Date(c.created_at).toLocaleDateString()}
+              </span>
+              <CaseStatusSelector
+                caseRow={c}
+                token={session.access_token}
+                onChanged={(newStatus, notification) => {
+                  setCases((rows) => rows.map((r) => (r.id === c.id ? { ...r, status: newStatus } : r)));
+                  const n = notification as { email?: string | null; sms?: string | null } | null;
+                  if (n?.email && n?.sms) setNotice(`Status changed to "${newStatus.replace("_", " ")}" — email + SMS notification sent.`);
+                  else if (n?.email) setNotice(`Status changed to "${newStatus.replace("_", " ")}" — email notification sent.`);
+                  else if (n?.sms) setNotice(`Status changed to "${newStatus.replace("_", " ")}" — SMS notification sent.`);
+                  else setNotice(`Status changed to "${newStatus.replace("_", " ")}" (no contact info on file — no notification sent).`);
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl border border-gray-200 p-5">
