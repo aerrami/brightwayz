@@ -132,8 +132,9 @@ export default function IntakePage() {
                 <input className="input" value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="555-000-0000" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input className="input" type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="you@example.com" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <input className="input" type="email" required value={form.email} onChange={e => set("email", e.target.value)} placeholder="you@example.com" />
+                <p className="mt-1 text-xs text-gray-400">We&apos;ll use this to follow up with you.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">ZIP code</label>
@@ -151,7 +152,7 @@ export default function IntakePage() {
             }
             {step < STEPS.length - 1
               ? <button onClick={() => setStep(s => s + 1)} disabled={step === 0 && !form.firstName} className="btn-primary disabled:opacity-40">Next →</button>
-              : <button onClick={submit} disabled={loading} className="btn-primary disabled:opacity-40">{loading ? "Submitting…" : "Submit"}</button>
+              : <button onClick={submit} disabled={loading || !form.email.trim()} className="btn-primary disabled:opacity-40">{loading ? "Submitting…" : "Submit"}</button>
             }
           </div>
         </div>
