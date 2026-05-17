@@ -64,6 +64,7 @@ def _decode(token: str) -> dict:
             signing_key,
             algorithms=[alg],
             audience="authenticated",
+            leeway=30,
         )
     except pyjwt.ExpiredSignatureError:
         raise HTTPException(
