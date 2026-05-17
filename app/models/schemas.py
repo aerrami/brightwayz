@@ -234,6 +234,16 @@ class StaffSendMessageRequest(BaseModel):
     body: str
 
 
+class SendSMSRequest(BaseModel):
+    clientId: str
+    body: str
+
+
+class SendSMSResponse(BaseModel):
+    success: bool
+    messageSid: str
+
+
 class MarkUnreadRequest(BaseModel):
     orgId: Optional[str] = None
     clientId: Optional[str] = None
