@@ -116,6 +116,10 @@ export const api = {
   sendSMS: (body: { clientId: string; body: string }, token: string) =>
     request("/data/sms/send", { method: "POST", body: JSON.stringify(body) }, token),
 
+  // WhatsApp (staff → client, via Twilio WhatsApp channel)
+  sendWhatsApp: (body: { clientId: string; body: string }, token: string) =>
+    request("/data/whatsapp/send", { method: "POST", body: JSON.stringify(body) }, token),
+
   // Cases (CRM lifecycle)
   listClientCases: (clientId: string, token: string) =>
     request(`/data/cases?clientId=${clientId}`, {}, token),
