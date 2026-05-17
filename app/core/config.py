@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     google_maps_api_key: str = ""
     anthropic_api_key: str = ""
 
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_from_number: str = ""
+
     @property
     def origins_list(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",")]
