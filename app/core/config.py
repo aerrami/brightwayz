@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
     twilio_from_number: str = ""
+    # WhatsApp sender — default is Twilio's shared sandbox number; replace with
+    # your own WhatsApp-enabled Twilio number for production. Include the
+    # "whatsapp:" prefix.
+    twilio_whatsapp_from_number: str = "whatsapp:+14155238886"
 
     resend_api_key: str = ""
     notification_from_email: str = "no-reply@brightwayz.io"

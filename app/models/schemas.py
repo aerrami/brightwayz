@@ -244,6 +244,16 @@ class SendSMSResponse(BaseModel):
     messageSid: str
 
 
+class SendWhatsAppRequest(BaseModel):
+    clientId: str
+    body: str
+
+
+class SendWhatsAppResponse(BaseModel):
+    success: bool
+    messageSid: str
+
+
 class CaseStatusUpdate(BaseModel):
     status: str  # one of: open | assigned | in_progress | resolved | closed
 
