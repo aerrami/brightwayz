@@ -82,6 +82,8 @@ export const api = {
     request(`/data/update-intake/${id}`, { method: "POST", body: JSON.stringify(body) }, token),
   completeIntake: (id: string, body: Record<string, unknown>, token: string) =>
     request(`/data/complete-intake/${id}`, { method: "POST", body: JSON.stringify(body) }, token),
+  deleteIntake: (id: string, token: string) =>
+    request(`/data/intake/${id}`, { method: "DELETE" }, token),
 
   // Referrals
   listReferrals: (params: Record<string, string>, token: string) =>
