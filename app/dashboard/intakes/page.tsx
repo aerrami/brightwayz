@@ -123,8 +123,7 @@ export default function IntakesPage() {
                   <td className="px-4 py-3">
                     {i.client ? (
                       <Link
-                        href={`/dashboard/clients/detail/?id=${i.client.id}`}
-                        onClick={(e) => e.stopPropagation()}
+                        href={`/dashboard/intakes/detail/?id=${i.id}`}
                         className="font-medium text-indigo-600 hover:underline"
                       >
                         {i.client.first_name} {i.client.last_name}
