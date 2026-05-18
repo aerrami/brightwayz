@@ -76,6 +76,7 @@ class AssessmentUpdate(BaseModel):
     email: Optional[str] = None
     language: Optional[str] = None
     source: Optional[str] = None
+    internalNotes: Optional[str] = None
 
 
 # ── Chatbot public intake ─────────────────────────────────────────────────────

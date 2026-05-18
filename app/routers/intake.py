@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.auth import require_user
 from app.core.config import get_settings
-from app.core.supabase import db_get, db_get_one, db_patch, db_post
+from app.core.supabase import db_delete, db_get, db_get_one, db_patch, db_post
 from fastapi import Query
 from app.models.schemas import (
     AssessmentUpdate,
@@ -50,6 +50,7 @@ def _assessment_row(body: AssessmentUpdate, status: str, now: str) -> dict:
         "language": body.language,
         "source": body.source or "staff",
         "status": status,
+        "internal_notes": body.internalNotes,
     }
 
 
@@ -200,6 +201,17 @@ async def get_intake(
         f"intakes?id=eq.{assessment_id}"
         f"&select=*,client:clients(id,first_name,last_name,phone,email)"
     )
+
+
+# ── DELETE /data/intake/{id} ──────────────────────────────────────────────────
+
+@data_router.delete("/intake/{assessment_id}")
+async def delete_intake(
+    assessment_id: str,
+    _user: dict = Depends(require_user),
+):
+    await db_delete(f"intakes?id=eq.{assessment_id}")
+    return {"success": True, "assessmentId": assessment_id}
 
 
 # ── POST /auth/chatbot-intake (PUBLIC) ────────────────────────────────────────
