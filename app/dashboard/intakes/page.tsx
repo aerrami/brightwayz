@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -24,6 +25,7 @@ const STATUSES: [string, string][] = [
 ];
 
 export default function IntakesPage() {
+  const router = useRouter();
   const { session } = useAuth();
   const [intakes, setIntakes] = useState<IntakeRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,11 +115,16 @@ export default function IntakesPage() {
             </thead>
             <tbody>
               {intakes.map((i) => (
-                <tr key={i.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
+                <tr
+                  key={i.id}
+                  onClick={() => router.push(`/dashboard/intakes/detail/?id=${i.id}`)}
+                  className="border-b border-gray-50 hover:bg-gray-50 transition cursor-pointer"
+                >
                   <td className="px-4 py-3">
                     {i.client ? (
                       <Link
                         href={`/dashboard/clients/detail/?id=${i.client.id}`}
+                        onClick={(e) => e.stopPropagation()}
                         className="font-medium text-indigo-600 hover:underline"
                       >
                         {i.client.first_name} {i.client.last_name}
