@@ -1,0 +1,15 @@
+# Root-level monorepo ignores. Subproject .gitignore files still apply within api/ and web/.
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+
+# Claude local settings (may contain secrets/permission grants)
+.claude/settings.local.json
