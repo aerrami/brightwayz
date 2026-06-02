@@ -79,6 +79,15 @@ def create_app() -> FastAPI:
     app.include_router(sms_router)
     app.include_router(cases_router)
 
+    @app.get("/", tags=["health"])
+    async def root():
+        return {
+            "status": "ok",
+            "service": "Brightwayz API",
+            "environment": cfg.environment,
+            "docs": "/docs",
+        }
+
     @app.get("/health", tags=["health"])
     async def health():
         return {"status": "ok", "environment": cfg.environment}
