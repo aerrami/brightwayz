@@ -6,8 +6,11 @@ organisations, events, files, messaging, auth.
 """
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field
+
+
+PriorityLevel = Literal["low", "normal", "high", "urgent"]
 
 
 # ── Clients ───────────────────────────────────────────────────────────────────
@@ -77,6 +80,7 @@ class AssessmentUpdate(BaseModel):
     language: Optional[str] = None
     source: Optional[str] = None
     internalNotes: Optional[str] = None
+    priority: Optional[PriorityLevel] = None
 
 
 # ── Chatbot public intake ─────────────────────────────────────────────────────
@@ -93,6 +97,7 @@ class ChatbotIntake(BaseModel):
     housingStatus: Optional[str] = None
     employmentStatus: Optional[str] = None
     orgId: Optional[str] = None
+    priority: Optional[PriorityLevel] = None
 
 
 class ChatbotIntakeResponse(BaseModel):

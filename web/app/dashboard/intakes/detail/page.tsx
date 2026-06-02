@@ -8,6 +8,8 @@ import StarterKit from "@tiptap/starter-kit";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 
+type Priority = "low" | "normal" | "high" | "urgent";
+
 type Intake = {
   id: string;
   status: string;
@@ -31,6 +33,7 @@ type Intake = {
   justice_impact_status: string | null;
   justice_conviction_type: string | null;
   internal_notes: string | null;
+  priority: Priority | null;
   client: {
     id: string;
     first_name: string;
@@ -38,6 +41,15 @@ type Intake = {
     phone: string | null;
     email: string | null;
   } | null;
+};
+
+const PRIORITY_LEVELS: Priority[] = ["low", "normal", "high", "urgent"];
+
+const PRIORITY_BADGE: Record<Priority, string> = {
+  low: "bg-gray-100 text-gray-600",
+  normal: "bg-blue-50 text-blue-700",
+  high: "bg-amber-50 text-amber-700",
+  urgent: "bg-red-50 text-red-700",
 };
 
 const HOUSING = ["", "stable", "at-risk", "shelter", "homeless", "other"];
@@ -242,6 +254,7 @@ type Draft = {
   supportUrgent: string;
   supportMore: string;
   internalNotes: string;
+  priority: Priority;
 };
 
 function intakeToDraft(i: Intake): Draft {
@@ -257,6 +270,7 @@ function intakeToDraft(i: Intake): Draft {
     supportUrgent: i.support_urgent ?? "",
     supportMore: i.support_more ?? "",
     internalNotes: i.internal_notes ?? "",
+    priority: i.priority ?? "normal",
   };
 }
 
@@ -357,7 +371,11 @@ function IntakeDetailContent() {
           <p className="text-sm text-gray-400 font-mono mt-1">{intake.id}</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {intake.support_urgent ? <span className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded-full font-medium">urgent</span> : null}
+          {intake.priority ? (
+            <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${PRIORITY_BADGE[intake.priority]}`}>
+              {intake.priority} priority
+            </span>
+          ) : null}
           <span className={`text-xs px-2 py-1 rounded-full font-medium ${intake.status === "completed" ? "bg-green-50 text-green-600" : "bg-yellow-50 text-yellow-600"}`}>{intake.status}</span>
           <span className="text-xs text-gray-400 capitalize">via {intake.source ?? "—"}</span>
         </div>
@@ -447,6 +465,17 @@ function IntakeDetailContent() {
         <Section title="Support Needs">
           {editing && draft ? (
             <>
+              <InputRow label="Priority">
+                <select
+                  className="input w-full"
+                  value={draft.priority}
+                  onChange={(e) => setDraft({ ...draft, priority: e.target.value as Priority })}
+                >
+                  {PRIORITY_LEVELS.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </InputRow>
               <InputRow label="Types">
                 <div className="grid grid-cols-2 gap-1 mt-1">
                   {SUPPORT_TYPES.map((t) => (
@@ -457,7 +486,7 @@ function IntakeDetailContent() {
                   ))}
                 </div>
               </InputRow>
-              <InputRow label="Urgency (e.g. tonight, this week)"><input className="input w-full" value={draft.supportUrgent} onChange={(e) => setDraft({ ...draft, supportUrgent: e.target.value })} /></InputRow>
+              <InputRow label="Urgency note (e.g. tonight, this week)"><input className="input w-full" value={draft.supportUrgent} onChange={(e) => setDraft({ ...draft, supportUrgent: e.target.value })} /></InputRow>
               <InputRow label="Additional context"><textarea className="input w-full font-sans" rows={3} value={draft.supportMore} onChange={(e) => setDraft({ ...draft, supportMore: e.target.value })} /></InputRow>
             </>
           ) : (
@@ -467,7 +496,8 @@ function IntakeDetailContent() {
                   {supportTypes.map((t) => <span key={t} className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">{t}</span>)}
                 </div>
               ) : null}
-              <Field label="Urgency" value={intake.support_urgent} />
+              <Field label="Priority" value={intake.priority} />
+              <Field label="Urgency note" value={intake.support_urgent} />
               {intake.support_more ? <div className="mt-3 text-sm text-gray-700 bg-gray-50 rounded p-3 whitespace-pre-wrap">{intake.support_more}</div> : null}
             </>
           )}

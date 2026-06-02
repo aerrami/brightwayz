@@ -186,3 +186,42 @@ def test_get_dashboard(mock_get, mock_get_one, authed):
     r = client.get("/data/dashboard/org-1", headers=auth_header())
     assert r.status_code == 200
     assert "stats" in r.json()
+
+
+# ── Intake priority inference (unit) ──────────────────────────────────────────
+
+from app.routers.intake import _infer_priority
+
+
+@pytest.mark.parametrize(
+    "housing,employment,types,urgent,expected",
+    [
+        # urgent: homeless + immediate phrasing
+        ("homeless", None, None, "need a bed tonight", "urgent"),
+        ("homeless", None, [], "today please", "urgent"),
+        ("homeless", "unemployed-looking", [], "asap", "urgent"),
+        ("homeless", None, [], "I need help right now", "urgent"),
+        # urgent: homeless + structural housing/food need (no urgent text)
+        ("homeless", None, ["Housing"], None, "urgent"),
+        ("homeless", None, ["food"], "", "urgent"),
+        # high: shelter or at-risk regardless of other fields
+        ("shelter", "employed", [], None, "high"),
+        ("at-risk", "unemployed-looking", ["Other"], "this week", "high"),
+        # low: stable + employed, nothing else flagged
+        ("stable", "employed", [], None, "low"),
+        ("stable", "employed", ["General info"], "", "low"),
+        # normal: homeless but no immediate / housing / food signal
+        ("homeless", None, ["Legal"], "exploring options", "normal"),
+        # normal: stable but not employed
+        ("stable", "unemployed-looking", [], None, "normal"),
+        ("stable", "unable-to-work", [], None, "normal"),
+        # normal: missing inputs
+        (None, None, None, None, "normal"),
+        ("", "", [], "", "normal"),
+        # case-insensitivity: support types and urgent text are both lowercased
+        ("homeless", None, ["HOUSING"], None, "urgent"),
+        ("homeless", None, [], "TONIGHT", "urgent"),
+    ],
+)
+def test_infer_priority(housing, employment, types, urgent, expected):
+    assert _infer_priority(housing, employment, types, urgent) == expected

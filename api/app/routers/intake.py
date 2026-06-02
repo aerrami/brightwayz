@@ -29,8 +29,37 @@ data_router = APIRouter(prefix="/data", tags=["intake"])
 auth_router = APIRouter(prefix="/auth", tags=["intake-public"])
 
 
+_PRIORITY_VALUES = ("low", "normal", "high", "urgent")
+
+
+def _infer_priority(
+    housing_status: str | None,
+    employment_status: str | None,
+    support_types: list[str] | None,
+    support_urgent: str | None,
+) -> str:
+    """Heuristic fallback when the caller didn't supply a priority.
+
+    Mirrors the rules the AI bot is taught in ai_chat.SYSTEM_PROMPT so the
+    public 4-step form and the chatbot produce comparable priorities.
+    """
+    types = {t.lower() for t in (support_types or [])}
+    urgent_text = (support_urgent or "").lower()
+    immediate = any(k in urgent_text for k in ("tonight", "today", "now", "asap"))
+
+    if housing_status == "homeless" and (
+        immediate or "housing" in types or "food" in types
+    ):
+        return "urgent"
+    if housing_status in {"shelter", "at-risk"}:
+        return "high"
+    if housing_status == "stable" and employment_status == "employed":
+        return "low"
+    return "normal"
+
+
 def _assessment_row(body: AssessmentUpdate, status: str, now: str) -> dict:
-    return {
+    row = {
         "name": body.name,
         "age": body.age,
         "zip_code": body.zipCode,
@@ -52,6 +81,9 @@ def _assessment_row(body: AssessmentUpdate, status: str, now: str) -> dict:
         "status": status,
         "internal_notes": body.internalNotes,
     }
+    if body.priority is not None:
+        row["priority"] = body.priority
+    return row
 
 
 # ── GET /data/intakes ─────────────────────────────────────────────────────────
@@ -68,17 +100,20 @@ async def list_intakes(
     date_from: str = Query("", alias="from", description="ISO date, inclusive lower bound"),
     date_to: str = Query("", alias="to", description="ISO date, inclusive upper bound"),
     status: str = Query("", description="'completed' or 'in_progress'"),
+    priority: str = Query("", description="'low' | 'normal' | 'high' | 'urgent'"),
     limit: int = Query(50, le=200),
     _user: dict = Depends(require_user),
 ):
     q = (
         f"intakes?org_id=eq.{org}"
-        f"&select=id,status,source,zip_code,support_types,support_urgent,created_at,completed_at,"
+        f"&select=id,status,source,zip_code,support_types,support_urgent,priority,created_at,completed_at,"
         f"client:clients(id,first_name,last_name)"
         f"&order=created_at.desc&limit={limit}"
     )
     if status:
         q += f"&status=eq.{status}"
+    if priority and priority in _PRIORITY_VALUES:
+        q += f"&priority=eq.{priority}"
     if date_from:
         q += f"&created_at=gte.{date_from}"
     if date_to:
@@ -244,6 +279,13 @@ async def chatbot_intake(body: ChatbotIntake):
         "created_at": now,
     })
 
+    priority = body.priority or _infer_priority(
+        body.housingStatus,
+        body.employmentStatus,
+        body.supportTypes,
+        body.supportUrgent,
+    )
+
     assessment = await db_post("intakes", {
         "client_id": client_id,
         "org_id": org_id,
@@ -255,6 +297,7 @@ async def chatbot_intake(body: ChatbotIntake):
         "language": body.language,
         "source": "chatbot",
         "status": "completed",
+        "priority": priority,
         "completed_at": now,
         "created_at": now,
     })

@@ -48,7 +48,14 @@ Guidelines:
 - If they ask questions you can't answer about specific programs or eligibility, say so honestly and note their question for the case manager.
 - Once you have first name + at least one support type + a valid email address, you have enough to submit. Phone is welcome but not required. Confirm with them first ("Want me to send this to our team now?"), then call the submit_intake tool.
 - After submission, give them the reference ID and tell them what happens next (a case manager reaches out within 24 hours).
-- Stay on-topic. If asked about unrelated things, redirect kindly back to how you can help."""
+- Stay on-topic. If asked about unrelated things, redirect kindly back to how you can help.
+
+Priority inference: when you call submit_intake, set the `priority` field based on what the visitor told you. Use your judgment, but as a guide:
+- **urgent** — immediate safety/survival need: homeless tonight, no food today, fleeing violence, child at risk, medical emergency without care. Anything where waiting 24h could cause real harm.
+- **high** — staying in a shelter, at risk of losing housing this month, no income with bills due, untreated serious health/mental-health issue, recent justice involvement needing reentry support.
+- **low** — stable housing, employed, asking about resources for general/future planning rather than an active crisis.
+- **normal** — anything in between, or when you genuinely can't tell. Default to normal rather than guessing high.
+Never tell the visitor what priority you assigned — it's an internal signal for the case manager."""
 
 
 SUBMIT_INTAKE_TOOL = {
@@ -100,6 +107,15 @@ SUBMIT_INTAKE_TOOL = {
             "phone": {"type": "string"},
             "email": {"type": "string"},
             "zipCode": {"type": "string"},
+            "priority": {
+                "type": "string",
+                "enum": ["low", "normal", "high", "urgent"],
+                "description": (
+                    "Internal triage signal for case managers. Infer from the "
+                    "conversation per the priority guide in the system prompt. "
+                    "Do not mention this field to the visitor."
+                ),
+            },
         },
         "required": ["firstName", "email"],
     },

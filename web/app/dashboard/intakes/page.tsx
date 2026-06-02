@@ -6,6 +6,8 @@ import { Search, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 
+type Priority = "low" | "normal" | "high" | "urgent";
+
 type IntakeRow = {
   id: string;
   status: string;
@@ -13,6 +15,7 @@ type IntakeRow = {
   zip_code: string | null;
   support_types: string[] | null;
   support_urgent: string | null;
+  priority: Priority | null;
   created_at: string;
   completed_at: string | null;
   client: { id: string; first_name: string; last_name: string } | null;
@@ -24,12 +27,28 @@ const STATUSES: [string, string][] = [
   ["in_progress", "In progress"],
 ];
 
+const PRIORITIES: [string, string][] = [
+  ["", "All priorities"],
+  ["urgent", "Urgent"],
+  ["high", "High"],
+  ["normal", "Normal"],
+  ["low", "Low"],
+];
+
+const PRIORITY_BADGE: Record<Priority, string> = {
+  low: "bg-gray-100 text-gray-600",
+  normal: "bg-blue-50 text-blue-700",
+  high: "bg-amber-50 text-amber-700",
+  urgent: "bg-red-50 text-red-700",
+};
+
 export default function IntakesPage() {
   const router = useRouter();
   const { session } = useAuth();
   const [intakes, setIntakes] = useState<IntakeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
+  const [priority, setPriority] = useState("");
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -39,6 +58,7 @@ export default function IntakesPage() {
     if (!session || !orgId) return;
     const params: Record<string, string> = { org: orgId, limit: "100" };
     if (status) params.status = status;
+    if (priority) params.priority = priority;
     if (search.trim()) params.search = search.trim();
     if (dateFrom) params.from = dateFrom;
     if (dateTo) params.to = dateTo;
@@ -46,7 +66,7 @@ export default function IntakesPage() {
       .then((rows: IntakeRow[]) => setIntakes(rows))
       .catch(() => setIntakes([]))
       .finally(() => setLoading(false));
-  }, [session, orgId, status, search, dateFrom, dateTo]);
+  }, [session, orgId, status, priority, search, dateFrom, dateTo]);
 
   return (
     <div className="p-8">
@@ -82,15 +102,28 @@ export default function IntakesPage() {
         <p className="text-sm text-gray-400">
           {loading ? "Loading…" : `${intakes.length} result${intakes.length === 1 ? "" : "s"}`}
         </p>
-        <select
-          className="input w-48"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          {STATUSES.map(([v, label]) => (
-            <option key={v} value={v}>{label}</option>
-          ))}
-        </select>
+        <div className="flex gap-2">
+          <select
+            className="input w-44"
+            value={priority}
+            onChange={(e) => setPriority(e.target.value)}
+            aria-label="Filter by priority"
+          >
+            {PRIORITIES.map(([v, label]) => (
+              <option key={v} value={v}>{label}</option>
+            ))}
+          </select>
+          <select
+            className="input w-44"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            aria-label="Filter by status"
+          >
+            {STATUSES.map(([v, label]) => (
+              <option key={v} value={v}>{label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -102,7 +135,7 @@ export default function IntakesPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                {["Client", "ZIP", "Status", "Source", "Support Needs", "Created"].map((h) => (
+                {["Client", "ZIP", "Priority", "Status", "Source", "Support Needs", "Created"].map((h) => (
                   <th
                     key={h}
                     className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide"
@@ -134,6 +167,15 @@ export default function IntakesPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-500">{i.zip_code || "—"}</td>
                   <td className="px-4 py-3">
+                    {i.priority ? (
+                      <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${PRIORITY_BADGE[i.priority]}`}>
+                        {i.priority}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full ${
                         i.status === "completed"
@@ -154,11 +196,6 @@ export default function IntakesPage() {
                     ) : (
                       "—"
                     )}
-                    {i.support_urgent ? (
-                      <span className="ml-2 text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full">
-                        urgent
-                      </span>
-                    ) : null}
                   </td>
                   <td className="px-4 py-3 text-gray-400">
                     {new Date(i.created_at).toLocaleDateString()}
