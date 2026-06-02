@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Claude Code local-only settings (may contain secrets/permission grants)
+.claude/settings.local.json
